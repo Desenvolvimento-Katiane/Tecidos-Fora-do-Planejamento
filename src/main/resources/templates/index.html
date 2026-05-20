@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Central de Tecidos</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        *, *::before, *::after { font-family: 'Inter', system-ui, sans-serif; }
+        body { background: #eef2f7; min-height: 100vh; }
+
+        /* ── Header ─────────────────────────────────────────────────────── */
+        .app-header {
+            background: linear-gradient(120deg, #0d1b2a 0%, #173a6b 55%, #1a56db 100%);
+            padding: 0;
+        }
+        .header-inner {
+            padding: 1.1rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .brand-wrap { display: flex; align-items: center; gap: 14px; }
+        .brand-icon-box {
+            width: 44px; height: 44px;
+            background: rgba(255,255,255,0.13);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; color: white;
+        }
+        .brand-title { font-size: 1.15rem; font-weight: 700; color: #fff; line-height: 1.2; }
+        .brand-subtitle { font-size: 0.7rem; color: rgba(255,255,255,0.55); font-weight: 400; }
+        .header-pill {
+            background: rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.8);
+            font-size: 0.72rem; font-weight: 500;
+            padding: 4px 14px; border-radius: 20px;
+        }
+
+        /* ── Page wrapper ───────────────────────────────────────────────── */
+        .page-wrap { padding: 2rem 0 5rem; }
+
+        /* ── Nav tabs ───────────────────────────────────────────────────── */
+        .nav-wrap {
+            background: white;
+            border-radius: 16px 16px 0 0;
+            padding: 0.6rem 0.6rem 0;
+            border-bottom: 1px solid #e8edf5;
+        }
+        .nav-wrap .nav-link {
+            border: none; border-radius: 10px 10px 0 0;
+            font-size: 0.875rem; font-weight: 600;
+            color: #7c8db0; padding: 0.6rem 1.3rem;
+            transition: color .15s, background .15s;
+        }
+        .nav-wrap .nav-link:hover { color: #1a56db; background: #f0f5ff; }
+        .nav-wrap .nav-link.active {
+            color: #1a56db; background: #f0f5ff;
+            border-bottom: 3px solid #1a56db;
+        }
+
+        /* ── Tab content panel ──────────────────────────────────────────── */
+        .panel {
+            background: white;
+            border-radius: 0 0 16px 16px;
+            box-shadow: 0 6px 28px rgba(0,0,0,.07);
+            padding: 2rem 2rem 2.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* ── Stat cards ─────────────────────────────────────────────────── */
+        .kpi-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.4rem 1.5rem;
+            box-shadow: 0 2px 14px rgba(0,0,0,.06);
+            display: flex; align-items: center; gap: 1rem;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,.1); }
+        .kpi-icon {
+            width: 52px; height: 52px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.35rem; flex-shrink: 0;
+        }
+        .kpi-icon.red   { background: #fff0f0; color: #e03131; }
+        .kpi-icon.slate { background: #f1f3f9; color: #5c6b8a; }
+        .kpi-num  { font-size: 2rem; font-weight: 800; line-height: 1; }
+        .kpi-num.red   { color: #e03131; }
+        .kpi-num.slate { color: #4a5880; }
+        .kpi-lbl  { font-size: 0.75rem; font-weight: 500; color: #9ba8c0; margin-top: 3px; }
+
+        /* ── Export button ──────────────────────────────────────────────── */
+        .btn-export {
+            background: linear-gradient(135deg, #12b76a, #0d9455);
+            color: white; border: none; border-radius: 14px;
+            padding: 0.85rem 1.5rem; font-weight: 600; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 8px;
+            text-decoration: none; width: 100%; justify-content: center;
+            transition: transform .2s, box-shadow .2s;
+            box-shadow: 0 4px 14px rgba(18,183,106,.25);
+        }
+        .btn-export:hover { color: white; transform: translateY(-2px); box-shadow: 0 8px 22px rgba(18,183,106,.35); }
+
+        /* ── Filter bar ─────────────────────────────────────────────────── */
+        .filter-bar {
+            display: flex; align-items: center; gap: 12px;
+            background: #f6f8fd; border: 1px solid #e4eaf6;
+            border-radius: 12px; padding: 0.8rem 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+        .filter-bar .fi-label {
+            font-size: 0.82rem; font-weight: 600; color: #5c6b8a; white-space: nowrap;
+        }
+        #filtroMarca {
+            border: 1.5px solid #dde3f0; border-radius: 8px;
+            font-size: 0.84rem; padding: 0.38rem 0.85rem;
+            color: #2d3a55; background: white; min-width: 220px;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        #filtroMarca:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,.1); outline: none; }
+
+        /* ── Result sections ────────────────────────────────────────────── */
+        .result-block {
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 2px 14px rgba(0,0,0,.06);
+            margin-bottom: 1.75rem;
+            border: 1px solid #e8edf5;
+        }
+        .result-block .table-responsive { border-radius: 0 0 14px 14px; overflow: hidden; }
+        .result-block .table { border-radius: 0 0 14px 14px; }
+        .result-block .table tbody tr:last-child td:first-child { border-bottom-left-radius: 14px; }
+        .result-block .table tbody tr:last-child td:last-child  { border-bottom-right-radius: 14px; }
+        .result-block-head {
+            display: flex; align-items: center; gap: 12px;
+            padding: 1.1rem 1.5rem;
+            background: white;
+            border-bottom: 1px solid #f0f3fa;
+        }
+        .rh-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; font-size: 1rem;
+        }
+        .rh-icon.red   { background: #fff0f0; color: #e03131; }
+        .rh-icon.slate { background: #f1f3f9; color: #5c6b8a; }
+        .rh-title { font-size: 0.95rem; font-weight: 700; color: #1a2238; }
+        .rh-count { margin-left: auto; font-size: 0.72rem; font-weight: 700; padding: 3px 11px; border-radius: 20px; }
+
+        /* ── Table ──────────────────────────────────────────────────────── */
+        #tabelaExcessos, #tabelaNuncaUtil { table-layout: fixed; width: 100%; }
+        .table thead th {
+            background: #1c2a45; color: #c8d3e8;
+            font-size: 0.72rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: .6px;
+            white-space: nowrap; border: none; padding: 10px 14px; text-align: center;
+        }
+        .table tbody td { font-size: 0.845rem; vertical-align: middle; padding: 9px 14px; border-color: #f0f3fa; }
+        .table-hover tbody tr:hover td { background: #f6f8fd !important; }
+        tr.excess-row    td { background: #fff8f8 !important; }
+        tr.excess-row-hi td { background: #fff8f8 !important; }
+        .diff-pill {
+            background: #e03131; color: white;
+            font-size: 0.76rem; font-weight: 700;
+            padding: 3px 10px; border-radius: 20px; display: inline-block;
+        }
+
+        /* ── Upload cards ───────────────────────────────────────────────── */
+        .upload-card {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            cursor: pointer; border-radius: 16px;
+            padding: 2.75rem 1.5rem;
+            border: 2px dashed #c8d3e8;
+            background: #f7f9fd; text-align: center; width: 100%;
+            transition: all .22s;
+        }
+        .upload-card:hover {
+            border-color: #1a56db; background: #eef3ff;
+            transform: translateY(-3px); box-shadow: 0 10px 28px rgba(26,86,219,.12);
+        }
+        .upload-card.loaded { border: 2px solid #12b76a; background: #f0fdf6; }
+        .upload-card.loaded:hover { background: #dcfce7; border-color: #0d9455; box-shadow: 0 10px 28px rgba(18,183,106,.15); }
+        .uc-title { font-size: 0.95rem; font-weight: 700; color: #1a2238; margin-top: 1rem; line-height: 1.35; }
+        .uc-sub   { font-size: 0.78rem; margin-top: 5px; }
+
+        /* ── Observação input ───────────────────────────────────────────── */
+        .obs-input {
+            border: 1.5px solid #dde3f0; border-radius: 6px;
+            padding: 4px 8px; font-size: 0.82rem; width: 100%; min-width: 180px;
+            background: white; color: #dc2626;
+            transition: border-color .15s, background .15s;
+        }
+        .obs-input:hover { border-color: #c0cbdf; background: white; }
+        .obs-input:focus { border-color: #1a56db; background: white; outline: none;
+                           box-shadow: 0 0 0 3px rgba(26,86,219,.08); }
+        .obs-input.obs-saved { border-color: #12b76a !important; background: #f0fdf6 !important; }
+        .obs-wrap { display: flex; flex-direction: column; gap: 3px; }
+
+        /* ── Analisar button ────────────────────────────────────────────── */
+        .btn-analisar {
+            background: linear-gradient(135deg, #1a56db, #1343b0);
+            color: white; border: none; border-radius: 14px;
+            padding: 0.9rem 3rem; font-size: 1rem; font-weight: 700;
+            cursor: pointer; transition: all .2s;
+            box-shadow: 0 4px 16px rgba(26,86,219,.3);
+        }
+        .btn-analisar:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(26,86,219,.4); }
+        .btn-analisar:disabled { background: #c0cbdf; cursor: not-allowed; box-shadow: none; }
+
+        /* ── DataTables UI ──────────────────────────────────────────────── */
+        .dataTables_wrapper .dataTables_filter input,
+        .dataTables_wrapper .dataTables_length select {
+            border: 1.5px solid #dde3f0; border-radius: 8px;
+            font-size: 0.82rem; padding: 0.3rem 0.65rem; color: #2d3a55;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus { outline: none; border-color: #1a56db; }
+        .dataTables_wrapper .dataTables_info { font-size: 0.8rem; color: #9ba8c0; }
+        .page-item.active .page-link { background: #1a56db; border-color: #1a56db; }
+        .page-link { color: #1a56db; }
+    </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<header class="app-header">
+    <div class="container">
+        <div class="header-inner">
+            <div class="brand-wrap">
+                <div class="brand-icon-box">
+                    <i class="bi bi-grid-3x3-gap-fill"></i>
+                </div>
+                <div>
+                    <div class="brand-title">Central de Tecidos</div>
+                    <div class="brand-subtitle">Comparação de Planilhas</div>
+                </div>
+            </div>
+            <span class="header-pill">Tecidos Fora do Planejamento</span>
+        </div>
+    </div>
+</header>
+
+<!-- ── Page ──────────────────────────────────────────────────────────────── -->
+<div class="container page-wrap">
+
+    <!-- Alertas flash -->
+    <div th:if="${sucesso}" class="alert alert-success alert-dismissible fade show rounded-3 mb-3" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i><span th:text="${sucesso}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${erro}" class="alert alert-danger alert-dismissible fade show rounded-3 mb-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${erro}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- ── Navegação ───────────────────────────────────────────────────── -->
+    <ul class="nav nav-wrap" id="mainTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link"
+                    th:classappend="${resultado != null and stayOnUpload != true} ? 'active'"
+                    id="main-resultados-btn" data-bs-toggle="tab"
+                    data-bs-target="#main-resultados" type="button" role="tab">
+                <i class="bi bi-bar-chart-fill me-2"></i>Resultados
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link"
+                    th:classappend="${resultado == null or stayOnUpload == true} ? 'active'"
+                    id="main-upload-btn" data-bs-toggle="tab"
+                    data-bs-target="#main-upload" type="button" role="tab">
+                <i class="bi bi-cloud-upload me-2"></i>Upload de Planilhas
+                <span th:unless="${resultado != null}"
+                      class="badge bg-warning text-dark ms-2" style="font-size:.65rem">Pendente</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="mainTabsContent">
+
+        <!-- ── Aba 1: Resultados ──────────────────────────────────────── -->
+        <div class="tab-pane fade panel"
+             th:classappend="${resultado != null and stayOnUpload != true} ? 'show active'"
+             id="main-resultados" role="tabpanel">
+
+            <div class="alert alert-secondary rounded-3" th:unless="${resultado != null}">
+                <i class="bi bi-arrow-left-circle me-2"></i>
+                Faça o upload das 3 planilhas na aba <strong>Upload de Planilhas</strong>
+                e clique em <strong>Analisar</strong> para ver os resultados.
+            </div>
+
+            <div th:if="${ultimaAtualizacao != null}"
+                 class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-3 mb-3"
+                 style="background:#f0f5ff;border:1px solid #c7d9f8;font-size:.83rem;color:#1a56db">
+                <i class="bi bi-clock-history fs-6"></i>
+                <span>Planilhas atualizadas em <strong th:text="${ultimaAtualizacao}"></strong></span>
+            </div>
+
+            <div th:if="${resultado != null}">
+
+                <!-- Gráficos Marcas x Qtd Tecidos -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-lg-6" th:if="${marcasGraficoExcessos != null and !marcasGraficoExcessos.isEmpty()}">
+                        <div class="p-3 rounded-4 bg-white shadow-sm h-100">
+                            <div class="mb-2" style="color:#5c6b8a;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.4px">
+                                Tecidos Acima do Planejado por Marca
+                            </div>
+                            <canvas id="graficaExcessos" style="max-height:200px"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-6" th:if="${marcasGraficoNunca != null and !marcasGraficoNunca.isEmpty()}">
+                        <div class="p-3 rounded-4 bg-white shadow-sm h-100">
+                            <div class="mb-2" style="color:#5c6b8a;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.4px">
+                                Nunca Utilizados por Marca
+                            </div>
+                            <canvas id="graficaNunca" style="max-height:200px"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPIs + Exportar -->
+                <div class="row g-3 mb-4 align-items-stretch">
+                    <div class="col-6 col-lg-3">
+                        <div class="kpi-card h-100" style="cursor:pointer"
+                             onclick="var e=document.getElementById('bloco-excessos');window.scrollTo({top:e.getBoundingClientRect().top+window.scrollY-20,behavior:'smooth'})">
+                            <div class="kpi-icon red"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                            <div>
+                                <div class="kpi-num red" th:text="${totalExcessos}">0</div>
+                                <div class="kpi-lbl">Tecidos em Excesso</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="kpi-card h-100" style="cursor:pointer"
+                             onclick="var e=document.getElementById('bloco-nunca-util');window.scrollTo({top:e.getBoundingClientRect().top+window.scrollY-20,behavior:'smooth'})">
+                            <div class="kpi-icon slate"><i class="bi bi-slash-circle-fill"></i></div>
+                            <div>
+                                <div class="kpi-num slate" th:text="${totalNuncaUtilizados}">0</div>
+                                <div class="kpi-lbl">Nunca Utilizados</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-3 d-flex align-items-center">
+                        <a href="/exportar" class="btn-export">
+                            <i class="bi bi-file-earmark-excel-fill" style="font-size:1.1rem"></i>
+                            Exportar Excel
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Sem ocorrências -->
+                <div class="alert alert-success rounded-3"
+                     th:if="${#lists.isEmpty(resultado.excessos) and #lists.isEmpty(resultado.nuncaUtilizados)}">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    Nenhum excesso encontrado! Todos os tecidos estão dentro do planejado.
+                </div>
+
+                <!-- Filtro por Marca -->
+                <div class="filter-bar"
+                     th:if="${not #lists.isEmpty(resultado.excessos) or not #lists.isEmpty(resultado.nuncaUtilizados)}">
+                    <i class="bi bi-funnel-fill" style="color:#1a56db;font-size:1rem"></i>
+                    <span class="fi-label">Filtrar por Marca</span>
+                    <select id="filtroMarca">
+                        <option value="">Todas as marcas</option>
+                        <option th:each="m : ${marcasValidas}" th:value="${m}" th:text="${m}"></option>
+                    </select>
+                </div>
+
+                <!-- Tabela: Tecidos Acima do Planejado -->
+                <div class="result-block" id="bloco-excessos" th:if="${not #lists.isEmpty(resultado.excessos)}">
+                    <div class="result-block-head">
+                        <div class="rh-icon red"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                        <span class="rh-title">Tecidos Acima do Planejado</span>
+                        <span class="badge bg-danger rh-count"
+                              th:text="${#lists.size(resultado.excessos)}"></span>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="tabelaExcessos" class="table table-hover mb-0 w-100">
+                            <colgroup>
+                                <col style="width:9%">  <col style="width:12%"> <col style="width:25%">
+                                <col style="width:7%">  <col style="width:8%">  <col style="width:8%">
+                                <col style="width:9%">  <col style="width:12%">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>Modelo</th>
+                                    <th>Código Systêxtil</th>
+                                    <th>Descrição</th>
+                                    <th class="text-center">Aprovado</th>
+                                    <th>Aprov/Cont</th>
+                                    <th class="text-center">Utilizado</th>
+                                    <th class="text-center">Diferença</th>
+                                    <th>Marca</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="item : ${resultado.excessos}"
+                                    th:classappend="${item.diferenca > 5} ? 'excess-row-hi' : 'excess-row'">
+                                    <td th:text="${item.modelo}"></td>
+                                    <td th:text="${item.codigoSystextil}"></td>
+                                    <td th:text="${item.descricaoSystextil}"></td>
+                                    <td class="text-center" th:text="${item.totalAprovacaoTecido}"></td>
+                                    <td th:text="${item.aprovCont}"></td>
+                                    <td class="text-center fw-bold" th:text="${item.totalModeloSomado}"></td>
+                                    <td class="text-center">
+                                        <span class="diff-pill" th:text="'+' + ${item.diferenca}"></span>
+                                    </td>
+                                    <td th:text="${item.marcas}"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tabela: Nunca Utilizados -->
+                <div class="result-block" id="bloco-nunca-util" th:if="${not #lists.isEmpty(resultado.nuncaUtilizados)}">
+                    <div class="result-block-head">
+                        <div class="rh-icon slate"><i class="bi bi-slash-circle-fill"></i></div>
+                        <span class="rh-title">Tecidos Planejados sem Utilização</span>
+                        <span class="badge bg-secondary rh-count"
+                              th:text="${#lists.size(resultado.nuncaUtilizados)}"></span>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="tabelaNuncaUtil" class="table table-hover mb-0 w-100">
+                            <colgroup>
+                                <col style="width:9%">  <col style="width:12%"> <col style="width:25%">
+                                <col style="width:7%">  <col style="width:8%">  <col style="width:17%">
+                                <col style="width:12%">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>Modelo</th>
+                                    <th>Código Systêxtil</th>
+                                    <th>Descrição</th>
+                                    <th class="text-center">Aprovado</th>
+                                    <th>Aprov/Cont</th>
+                                    <th>Observação</th>
+                                    <th>Marca</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="item : ${resultado.nuncaUtilizados}">
+                                    <td th:text="${item.modelo}"></td>
+                                    <td th:text="${item.codigoSystextil}"></td>
+                                    <td th:text="${item.descricaoSystextil}"></td>
+                                    <td class="text-center" th:text="${item.totalAprovacaoTecido}"></td>
+                                    <td th:text="${item.aprovCont}"></td>
+                                    <td>
+                                        <div class="obs-wrap">
+                                            <input type="text" class="obs-input"
+                                                   th:value="${observacoes != null and observacoes[item.codigoSystextil] != null} ? ${observacoes[item.codigoSystextil]} : ''"
+                                                   th:data-codigo="${item.codigoSystextil}">
+                                        </div>
+                                    </td>
+                                    <td th:text="${item.linha}"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ── Aba 2: Upload ──────────────────────────────────────────── -->
+        <div class="tab-pane fade panel"
+             th:classappend="${resultado == null or stayOnUpload == true} ? 'show active'"
+             id="main-upload" role="tabpanel">
+
+            <p class="text-muted mb-4" style="font-size:.85rem">
+                <i class="bi bi-info-circle me-1"></i>
+                Clique no card para selecionar o arquivo. O envio é automático ao escolher. Novos uploads substituem os anteriores.
+            </p>
+
+            <div class="row g-4">
+
+                <!-- Card P1 -->
+                <div class="col-md-4">
+                    <form th:action="@{/analisar}" method="post" enctype="multipart/form-data">
+                        <label for="inputP1" class="upload-card" th:classappend="${p1Existe} ? 'loaded'">
+                            <i class="bi bi-file-earmark-check-fill text-success"
+                               style="font-size:2.8rem" th:if="${p1Existe}"></i>
+                            <i class="bi bi-cloud-arrow-up"
+                               style="font-size:2.8rem;color:#a0aec0" th:unless="${p1Existe}"></i>
+                            <div class="uc-title">Tecidos Aprovados</div>
+                            <div class="uc-sub text-success fw-semibold" th:if="${p1Existe}">
+                                <i class="bi bi-check-circle-fill me-1"></i>Carregado — clique para substituir
+                            </div>
+                            <div class="uc-sub text-muted" th:unless="${p1Existe}">
+                                Clique para selecionar (.xlsx)
+                            </div>
+                            <div th:if="${dataP1 != null}"
+                                 style="font-size:.73rem;color:#5c6b8a;margin-top:6px">
+                                <i class="bi bi-clock me-1"></i><span th:text="${dataP1}"></span>
+                            </div>
+                            <input id="inputP1" type="file" name="planilha1"
+                                   accept=".xlsx,.xls" hidden onchange="this.form.submit()">
+                        </label>
+                    </form>
+                </div>
+
+                <!-- Card P2 -->
+                <div class="col-md-4">
+                    <form th:action="@{/analisar}" method="post" enctype="multipart/form-data">
+                        <label for="inputP2" class="upload-card" th:classappend="${p2Existe} ? 'loaded'">
+                            <i class="bi bi-file-earmark-check-fill text-success"
+                               style="font-size:2.8rem" th:if="${p2Existe}"></i>
+                            <i class="bi bi-cloud-arrow-up"
+                               style="font-size:2.8rem;color:#a0aec0" th:unless="${p2Existe}"></i>
+                            <div class="uc-title">
+                                Tecidos Utilizados
+                                <div style="font-size:.78rem;font-weight:500;color:#7c8db0;margin-top:2px">Peças Liberadas</div>
+                            </div>
+                            <div class="uc-sub text-success fw-semibold" th:if="${p2Existe}">
+                                <i class="bi bi-check-circle-fill me-1"></i>Carregado — clique para substituir
+                            </div>
+                            <div class="uc-sub text-muted" th:unless="${p2Existe}">
+                                Clique para selecionar (.xlsx)
+                            </div>
+                            <div th:if="${dataP2 != null}"
+                                 style="font-size:.73rem;color:#5c6b8a;margin-top:6px">
+                                <i class="bi bi-clock me-1"></i><span th:text="${dataP2}"></span>
+                            </div>
+                            <input id="inputP2" type="file" name="planilha2"
+                                   accept=".xlsx,.xls" hidden onchange="this.form.submit()">
+                        </label>
+                    </form>
+                </div>
+
+                <!-- Card P3 -->
+                <div class="col-md-4">
+                    <form th:action="@{/analisar}" method="post" enctype="multipart/form-data">
+                        <label for="inputP3" class="upload-card" th:classappend="${p3Existe} ? 'loaded'">
+                            <i class="bi bi-file-earmark-check-fill text-success"
+                               style="font-size:2.8rem" th:if="${p3Existe}"></i>
+                            <i class="bi bi-cloud-arrow-up"
+                               style="font-size:2.8rem;color:#a0aec0" th:unless="${p3Existe}"></i>
+                            <div class="uc-title">
+                                Tecidos Utilizados
+                                <div style="font-size:.78rem;font-weight:500;color:#7c8db0;margin-top:2px">Coleção Completa</div>
+                            </div>
+                            <div class="uc-sub text-success fw-semibold" th:if="${p3Existe}">
+                                <i class="bi bi-check-circle-fill me-1"></i>Carregado — clique para substituir
+                            </div>
+                            <div class="uc-sub text-muted" th:unless="${p3Existe}">
+                                Clique para selecionar (.xlsx)
+                            </div>
+                            <div th:if="${dataP3 != null}"
+                                 style="font-size:.73rem;color:#5c6b8a;margin-top:6px">
+                                <i class="bi bi-clock me-1"></i><span th:text="${dataP3}"></span>
+                            </div>
+                            <input id="inputP3" type="file" name="planilha3"
+                                   accept=".xlsx,.xls" hidden onchange="this.form.submit()">
+                        </label>
+                    </form>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- ── Scripts ──────────────────────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script th:inline="none">
+    const dtLang = {
+        "decimal": ",", "thousands": ".",
+        "emptyTable":    "Sem dados disponíveis",
+        "info":          "Mostrando _START_ a _END_ de _TOTAL_ registros",
+        "infoEmpty":     "Mostrando 0 a 0 de 0 registros",
+        "infoFiltered":  "(filtrado de _MAX_ registros totais)",
+        "lengthMenu":    "Mostrar _MENU_ registros",
+        "loadingRecords":"Carregando...",
+        "processing":    "Processando...",
+        "search":        "Buscar:",
+        "zeroRecords":   "Nenhum registro encontrado",
+        "paginate": {
+            "first": "Primeiro", "last": "Último",
+            "next": "Próximo",   "previous": "Anterior"
+        }
+    };
+
+    // Filtro por Marca na tabelaExcessos (col 7 — múltiplas marcas separadas por vírgula)
+    $.fn.dataTable.ext.search.push(function(settings, data) {
+        if (settings.nTable.id !== 'tabelaExcessos') return true;
+        var filtro = $('#filtroMarca').val();
+        if (!filtro) return true;
+        var marcas = data[7].split(',').map(function(m) { return m.trim(); });
+        return marcas.indexOf(filtro) !== -1;
+    });
+
+    // Filtro por Linha na tabelaNuncaUtil (col 6)
+    $.fn.dataTable.ext.search.push(function(settings, data) {
+        if (settings.nTable.id !== 'tabelaNuncaUtil') return true;
+        var filtro = $('#filtroMarca').val();
+        if (!filtro) return true;
+        return data[6].trim() === filtro;
+    });
+
+    $(document).ready(function () {
+        var tabelaExcessos  = null;
+        var tabelaNuncaUtil = null;
+
+        if ($('#tabelaExcessos').length) {
+            tabelaExcessos = $('#tabelaExcessos').DataTable({
+                language: dtLang,
+                pageLength: 100,
+                lengthChange: false,
+                autoWidth: false,
+                order: [[6, 'desc']],
+                columnDefs: [{ targets: [3, 5, 6], className: 'text-center' }]
+            });
+        }
+        if ($('#tabelaNuncaUtil').length) {
+            tabelaNuncaUtil = $('#tabelaNuncaUtil').DataTable({
+                language: dtLang,
+                pageLength: 100,
+                lengthChange: false,
+                autoWidth: false,
+                order: [[1, 'asc']]
+            });
+        }
+
+        $('#filtroMarca').on('change', function() {
+            if (tabelaExcessos)  tabelaExcessos.draw();
+            if (tabelaNuncaUtil) tabelaNuncaUtil.draw();
+        });
+
+        // Auto-save ao sair do campo
+        $(document).on('blur', '.obs-input', function() {
+            var input  = $(this);
+            var codigo = input.data('codigo');
+            var texto  = input.val();
+            fetch('/observacao', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'codigo=' + encodeURIComponent(codigo) + '&texto=' + encodeURIComponent(texto)
+            }).then(function(r) {
+                if (r.ok) {
+                    input.addClass('obs-saved');
+                    setTimeout(function() { input.removeClass('obs-saved'); }, 1400);
+                }
+            });
+        });
+
+        // Reajusta colunas ao trocar de aba
+        document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(function(btn) {
+            btn.addEventListener('shown.bs.tab', function() {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            });
+        });
+    });
+</script>
+<script th:inline="javascript">
+/*<![CDATA[*/
+function renderGrafico(canvasId, dados, cor) {
+    var el = document.getElementById(canvasId);
+    if (!el || !dados) return;
+    var labels = Object.keys(dados);
+    var values = Object.values(dados);
+    new Chart(el, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: cor,
+                borderRadius: 5,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: { label: function(ctx) { return ' ' + ctx.parsed.y + ' tecido(s)'; } }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0, color: '#b0bdd0', font: { size: 11 } },
+                    grid: { color: '#f3f5fb' }
+                },
+                x: {
+                    ticks: { color: '#5c6b8a', font: { size: 11 } },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
+renderGrafico('graficaExcessos', /*[[${marcasGraficoExcessos}]]*/ null, 'rgba(224,57,57,0.75)');
+renderGrafico('graficaNunca',    /*[[${marcasGraficoNunca}]]*/ null,    'rgba(26,86,219,0.70)');
+/*]]>*/
+</script>
+
+</body>
+</html>
