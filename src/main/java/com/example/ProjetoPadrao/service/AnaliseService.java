@@ -55,8 +55,13 @@ public class AnaliseService {
 
         // código normalizado → TecidoPlanejado (primeira ocorrência em caso de duplicata)
         Map<String, TecidoPlanejado> mapPlanejado = new LinkedHashMap<>();
+        Map<String, Set<String>> mapLinhas = new LinkedHashMap<>();
         for (TecidoPlanejado tp : planejados) {
             mapPlanejado.putIfAbsent(tp.codigoNormalizado(), tp);
+            for (String marca : extrairMarcas(tp.linha())) {
+                mapLinhas.computeIfAbsent(tp.codigoNormalizado(), k -> new LinkedHashSet<>())
+                         .add(marca);
+            }
         }
 
         // código normalizado → Set de modelos distintos (normalizados)
@@ -134,9 +139,10 @@ public class AnaliseService {
                 String codigo = entry.getKey();
                 if (!mapUtilizados3.containsKey(codigo)) {
                     TecidoPlanejado tp = entry.getValue();
-                    String marcaNorm = extrairMarcas(tp.linha()).stream()
-                            .findFirst()
-                            .orElse(tp.linha() != null ? tp.linha().trim() : "");
+                    String marcaNorm = String.join(", ",
+                            mapLinhas.getOrDefault(codigo, Collections.emptySet()));
+                    if (marcaNorm.isBlank())
+                        marcaNorm = tp.linha() != null ? tp.linha().trim() : "";
                     nuncaUtilizados.add(new ItemRelatorio(
                             tp.modelo(),
                             tp.codigoSystextil(),

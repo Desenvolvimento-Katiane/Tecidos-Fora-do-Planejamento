@@ -383,7 +383,7 @@
                     <div class="table-responsive">
                         <table id="tabelaExcessos" class="table table-hover mb-0 w-100">
                             <colgroup>
-                                <col style="width:9%">  <col style="width:12%"> <col style="width:25%">
+                                <col style="width:20%"> <col style="width:12%"> <col style="width:14%">
                                 <col style="width:7%">  <col style="width:8%">  <col style="width:8%">
                                 <col style="width:9%">  <col style="width:12%">
                             </colgroup>
@@ -429,7 +429,7 @@
                     <div class="table-responsive">
                         <table id="tabelaNuncaUtil" class="table table-hover mb-0 w-100">
                             <colgroup>
-                                <col style="width:9%">  <col style="width:12%"> <col style="width:25%">
+                                <col style="width:20%"> <col style="width:12%"> <col style="width:14%">
                                 <col style="width:7%">  <col style="width:8%">  <col style="width:17%">
                                 <col style="width:12%">
                             </colgroup>
@@ -601,12 +601,13 @@
         return marcas.indexOf(filtro) !== -1;
     });
 
-    // Filtro por Linha na tabelaNuncaUtil (col 6)
+    // Filtro por Marca na tabelaNuncaUtil (col 6 — múltiplas marcas separadas por vírgula)
     $.fn.dataTable.ext.search.push(function(settings, data) {
         if (settings.nTable.id !== 'tabelaNuncaUtil') return true;
         var filtro = $('#filtroMarca').val();
         if (!filtro) return true;
-        return data[6].trim() === filtro;
+        var marcas = data[6].split(',').map(function(m) { return m.trim(); });
+        return marcas.indexOf(filtro) !== -1;
     });
 
     $(document).ready(function () {
