@@ -10,5 +10,6 @@ public record ItemRelatorio(
         int diferenca,
         boolean semPlanejamento,
         String marcas,
-        String linha) {
+        String linha,
+        String colecao) {
 }

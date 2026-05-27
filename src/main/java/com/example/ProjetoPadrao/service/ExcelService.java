@@ -5,6 +5,7 @@ import com.example.ProjetoPadrao.model.TecidoPlanejado;
 import com.example.ProjetoPadrao.model.TecidoUtilizado;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,12 +27,19 @@ public class ExcelService {
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
 
+    @Autowired
+    private ColecaoService colecaoService;
+
     private Path getUploadPath() {
         return Paths.get(System.getProperty("user.dir"), uploadDir);
     }
 
     public boolean arquivoExiste(String nome) {
         return Files.exists(getUploadPath().resolve(nome));
+    }
+
+    public boolean arquivoExisteColecao(String slug, String nome) {
+        return Files.exists(colecaoService.getColecaoDir(slug).resolve(nome));
     }
 
     public void salvarArquivo(MultipartFile file, String nomeDestino) throws IOException {
@@ -42,19 +50,72 @@ public class ExcelService {
         }
     }
 
-    public List<TecidoPlanejado> lerPlanilha1() throws IOException {
-        Path path = getUploadPath().resolve("planilha1.xlsx");
-        try (InputStream is = Files.newInputStream(path);
-             Workbook wb = WorkbookFactory.create(is)) {
+    public void salvarArquivoColecao(MultipartFile file, String slug, String nomeDestino) throws IOException {
+        Path dir = colecaoService.getColecaoDir(slug);
+        Files.createDirectories(dir);
+        try (InputStream is = file.getInputStream()) {
+            Files.copy(is, dir.resolve(nomeDestino), StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
 
+    public String lerColecaoDoArquivo(MultipartFile file) {
+        try (InputStream is = file.getInputStream();
+             Workbook wb = WorkbookFactory.create(is)) {
             Sheet sheet = wb.getSheetAt(0);
             FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
-
             int headerRowIndex = findHeaderRow(sheet, "codigo systextil");
-            if (headerRowIndex < 0) {
-                throw new IOException("Cabeçalho 'Código Systêxtil' não encontrado na Planilha 1. Verifique o arquivo.");
+            if (headerRowIndex < 0) return null;
+            Map<String, Integer> headers = mapHeaders(sheet.getRow(headerRowIndex));
+            int colColecao = -1;
+            for (Map.Entry<String, Integer> e : headers.entrySet()) {
+                if (e.getKey().contains("colecao")) { colColecao = e.getValue(); break; }
             }
+            if (colColecao < 0) return null;
+            for (int i = headerRowIndex + 1; i <= Math.min(headerRowIndex + 10, sheet.getLastRowNum()); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+                String val = readStringCell(row.getCell(colColecao), evaluator);
+                if (!val.isBlank()) return val.trim();
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
 
+    public List<TecidoPlanejado> lerPlanilha1() throws IOException {
+        return lerPlanilha1FromPath(getUploadPath().resolve("planilha1.xlsx"));
+    }
+
+    public List<TecidoUtilizado> lerPlanilha2() throws IOException {
+        return lerPlanilhaUtilizadoFromPath(getUploadPath().resolve("planilha2.xlsx"), "Planilha 2");
+    }
+
+    public List<TecidoUtilizado> lerPlanilha3() throws IOException {
+        return lerPlanilhaUtilizadoFromPath(getUploadPath().resolve("planilha3.xlsx"), "Planilha 3");
+    }
+
+    public List<TecidoPlanejado> lerPlanilha1(String slug) throws IOException {
+        Path path = colecaoService.getColecaoDir(slug).resolve("planilha1.xlsx");
+        return lerPlanilha1FromPath(path);
+    }
+
+    public List<TecidoUtilizado> lerPlanilha2(String slug) throws IOException {
+        Path path = colecaoService.getColecaoDir(slug).resolve("planilha2.xlsx");
+        return lerPlanilhaUtilizadoFromPath(path, "Planilha 2");
+    }
+
+    public List<TecidoUtilizado> lerPlanilha3(String slug) throws IOException {
+        Path path = colecaoService.getColecaoDir(slug).resolve("planilha3.xlsx");
+        return lerPlanilhaUtilizadoFromPath(path, "Planilha 3");
+    }
+
+    private List<TecidoPlanejado> lerPlanilha1FromPath(Path path) throws IOException {
+        try (InputStream is = Files.newInputStream(path);
+             Workbook wb = WorkbookFactory.create(is)) {
+            Sheet sheet = wb.getSheetAt(0);
+            FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
+            int headerRowIndex = findHeaderRow(sheet, "codigo systextil");
+            if (headerRowIndex < 0)
+                throw new IOException("Cabeçalho 'Código Systêxtil' não encontrado na Planilha 1. Verifique o arquivo.");
             Map<String, Integer> headers = mapHeaders(sheet.getRow(headerRowIndex));
             int colModelo    = getColIndex(headers, "modelo");
             int colCodigo    = getColIndex(headers, "codigo systextil");
@@ -62,7 +123,6 @@ public class ExcelService {
             int colTotal     = getColIndex(headers, "total aprovacao tecido");
             int colAprov     = getColIndex(headers, "aprov/cont");
             int colLinha     = getColIndex(headers, "linha");
-
             List<TecidoPlanejado> list = new ArrayList<>();
             for (int i = headerRowIndex + 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
@@ -74,7 +134,7 @@ public class ExcelService {
                         codigo,
                         normalizarCodigo(codigo),
                         colDescricao >= 0 ? readStringCell(row.getCell(colDescricao), evaluator) : "",
-                        colTotal >= 0     ? readIntCell(row.getCell(colTotal), evaluator)         : 0,
+                        colTotal >= 0     ? readIntCell(row.getCell(colTotal), evaluator)        : 0,
                         colAprov >= 0     ? readStringCell(row.getCell(colAprov), evaluator)     : "",
                         colLinha >= 0     ? readStringCell(row.getCell(colLinha), evaluator)     : ""
                 ));
@@ -83,59 +143,18 @@ public class ExcelService {
         }
     }
 
-    public List<TecidoUtilizado> lerPlanilha2() throws IOException {
-        Path path = getUploadPath().resolve("planilha2.xlsx");
+    private List<TecidoUtilizado> lerPlanilhaUtilizadoFromPath(Path path, String nome) throws IOException {
         try (InputStream is = Files.newInputStream(path);
              Workbook wb = WorkbookFactory.create(is)) {
-
             Sheet sheet = wb.getSheetAt(0);
             FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
-
             int headerRowIndex = findHeaderRow(sheet, "codigo systextil");
-            if (headerRowIndex < 0) {
-                throw new IOException("Cabeçalho 'Código Systêxtil' não encontrado na Planilha 2. Verifique o arquivo.");
-            }
-
+            if (headerRowIndex < 0)
+                throw new IOException("Cabeçalho 'Código Systêxtil' não encontrado na " + nome + ". Verifique o arquivo.");
             Map<String, Integer> headers = mapHeaders(sheet.getRow(headerRowIndex));
             int colModelo = getColIndex(headers, "modelo");
             int colMarca  = getColIndex(headers, "marca");
             int colCodigo = getColIndex(headers, "codigo systextil");
-
-            List<TecidoUtilizado> list = new ArrayList<>();
-            for (int i = headerRowIndex + 1; i <= sheet.getLastRowNum(); i++) {
-                Row row = sheet.getRow(i);
-                if (row == null) continue;
-                String codigo = readStringCell(row.getCell(colCodigo), evaluator);
-                if (codigo.isBlank()) continue;
-                list.add(new TecidoUtilizado(
-                        colModelo >= 0 ? readStringCell(row.getCell(colModelo), evaluator) : "",
-                        colMarca >= 0  ? readStringCell(row.getCell(colMarca), evaluator)  : "",
-                        codigo,
-                        normalizarCodigo(codigo)
-                ));
-            }
-            return list;
-        }
-    }
-
-    public List<TecidoUtilizado> lerPlanilha3() throws IOException {
-        Path path = getUploadPath().resolve("planilha3.xlsx");
-        try (InputStream is = Files.newInputStream(path);
-             Workbook wb = WorkbookFactory.create(is)) {
-
-            Sheet sheet = wb.getSheetAt(0);
-            FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
-
-            int headerRowIndex = findHeaderRow(sheet, "codigo systextil");
-            if (headerRowIndex < 0) {
-                throw new IOException("Cabeçalho 'Código Systêxtil' não encontrado na Planilha 3. Verifique o arquivo.");
-            }
-
-            Map<String, Integer> headers = mapHeaders(sheet.getRow(headerRowIndex));
-            int colModelo = getColIndex(headers, "modelo");
-            int colMarca  = getColIndex(headers, "marca");
-            int colCodigo = getColIndex(headers, "codigo systextil");
-
             List<TecidoUtilizado> list = new ArrayList<>();
             for (int i = headerRowIndex + 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);

@@ -46,6 +46,34 @@
         /* ── Page wrapper ───────────────────────────────────────────────── */
         .page-wrap { padding: 2rem 0 5rem; }
 
+        /* ── Barra de coleção ───────────────────────────────────────────── */
+        .colecao-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 0.65rem 1.25rem;
+            margin-bottom: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.05);
+            border: 1px solid #e8edf5;
+            flex-wrap: wrap;
+        }
+        .colecao-label { font-size: 0.8rem; font-weight: 600; color: #5c6b8a; white-space: nowrap; }
+        .colecao-select {
+            border: 1.5px solid #dde3f0; border-radius: 8px;
+            font-size: 0.84rem; padding: 0.35rem 0.8rem;
+            color: #2d3a55; background: white; min-width: 200px;
+            transition: border-color .15s;
+        }
+        .colecao-select:focus { border-color: #1a56db; outline: none; }
+        .colecao-badge {
+            background: linear-gradient(135deg, #1a56db, #1343b0);
+            color: white; font-size: 0.75rem; font-weight: 700;
+            padding: 4px 14px; border-radius: 20px; white-space: nowrap;
+        }
+        .colecao-badge.todas { background: linear-gradient(135deg, #5c6b8a, #3d4f6b); }
+
         /* ── Nav tabs ───────────────────────────────────────────────────── */
         .nav-wrap {
             background: white;
@@ -119,13 +147,13 @@
         .filter-bar .fi-label {
             font-size: 0.82rem; font-weight: 600; color: #5c6b8a; white-space: nowrap;
         }
-        #filtroMarca {
+        #filtroMarca, #filtroMarcaCC, #filtroMarcaSU {
             border: 1.5px solid #dde3f0; border-radius: 8px;
             font-size: 0.84rem; padding: 0.38rem 0.85rem;
             color: #2d3a55; background: white; min-width: 220px;
             transition: border-color .15s, box-shadow .15s;
         }
-        #filtroMarca:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,.1); outline: none; }
+        #filtroMarca:focus, #filtroMarcaCC:focus, #filtroMarcaSU:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,.1); outline: none; }
 
         /* ── Result sections ────────────────────────────────────────────── */
         .result-block {
@@ -269,6 +297,26 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 
+    <!-- ── Barra de coleção ─────────────────────────────────────────────── -->
+    <div class="colecao-bar" th:if="${colecoes != null and !colecoes.isEmpty()}">
+        <span class="colecao-label"><i class="bi bi-layers me-1"></i>Coleção:</span>
+        <select class="colecao-select" id="seletorColecao" onchange="trocarColecao(this.value)">
+            <option value="todas" th:selected="${modoTodas}">Todas as coleções</option>
+            <option th:each="c : ${colecoes}"
+                    th:value="${c.slug}"
+                    th:text="${c.nomeOriginal}"
+                    th:selected="${colecaoAtual != null and colecaoAtual.slug == c.slug}"></option>
+        </select>
+        <span class="colecao-badge" th:classappend="${modoTodas} ? 'todas'"
+              th:text="${modoTodas} ? 'Todas as coleções' : (colecaoAtual != null ? colecaoAtual.nomeOriginal : 'Nenhuma')">
+        </span>
+        <span th:if="${ultimaAtualizacao != null}"
+              style="font-size:.78rem;color:#5c6b8a;display:flex;align-items:center;gap:.35rem;margin-left:.5rem;">
+            <i class="bi bi-clock-history"></i>
+            Planilhas atualizadas em: <strong th:text="${ultimaAtualizacao}"></strong>
+        </span>
+    </div>
+
     <!-- ── Navegação ───────────────────────────────────────────────────── -->
     <ul class="nav nav-wrap" id="mainTabs" role="tablist">
         <li class="nav-item" role="presentation">
@@ -276,7 +324,25 @@
                     th:classappend="${resultado != null and stayOnUpload != true} ? 'active'"
                     id="main-resultados-btn" data-bs-toggle="tab"
                     data-bs-target="#main-resultados" type="button" role="tab">
-                <i class="bi bi-bar-chart-fill me-2"></i>Resultados
+                <i class="bi bi-bar-chart-fill me-2"></i>Peças Liberadas
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="main-cc-btn" data-bs-toggle="tab"
+                    data-bs-target="#main-cc" type="button" role="tab">
+                <i class="bi bi-collection me-2"></i>Coleção Completa
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="main-sem-util-btn" data-bs-toggle="tab"
+                    data-bs-target="#main-sem-util" type="button" role="tab">
+                <i class="bi bi-slash-circle me-2"></i>Tecidos S/ Utilização
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="main-analise-btn" data-bs-toggle="tab"
+                    data-bs-target="#main-analise" type="button" role="tab">
+                <i class="bi bi-graph-up me-2"></i>Análise
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -287,12 +353,6 @@
                 <i class="bi bi-cloud-upload me-2"></i>Upload de Planilhas
                 <span th:unless="${resultado != null}"
                       class="badge bg-warning text-dark ms-2" style="font-size:.65rem">Pendente</span>
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="main-analise-btn" data-bs-toggle="tab"
-                    data-bs-target="#main-analise" type="button" role="tab">
-                <i class="bi bi-graph-up me-2"></i>Análise
             </button>
         </li>
     </ul>
@@ -310,13 +370,6 @@
                 e clique em <strong>Analisar</strong> para ver os resultados.
             </div>
 
-            <div th:if="${ultimaAtualizacao != null}"
-                 class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-3 mb-3"
-                 style="background:#f0f5ff;border:1px solid #c7d9f8;font-size:.83rem;color:#1a56db">
-                <i class="bi bi-clock-history fs-6"></i>
-                <span>Planilhas atualizadas em <strong th:text="${ultimaAtualizacao}"></strong></span>
-            </div>
-
             <div th:if="${resultado != null}">
 
                 <!-- Gráficos Marcas x Qtd Tecidos -->
@@ -327,14 +380,6 @@
                                 Tecidos Acima do Planejado por Marca
                             </div>
                             <canvas id="graficaExcessos" style="max-height:200px"></canvas>
-                        </div>
-                    </div>
-                    <div class="col-12 col-lg-6" th:if="${marcasGraficoNunca != null and !marcasGraficoNunca.isEmpty()}">
-                        <div class="p-3 rounded-4 bg-white shadow-sm h-100">
-                            <div class="mb-2" style="color:#5c6b8a;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.4px">
-                                Nunca Utilizados por Marca
-                            </div>
-                            <canvas id="graficaNunca" style="max-height:200px"></canvas>
                         </div>
                     </div>
                 </div>
@@ -351,18 +396,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-lg-3">
-                        <div class="kpi-card h-100" style="cursor:pointer"
-                             onclick="var e=document.getElementById('bloco-nunca-util');window.scrollTo({top:e.getBoundingClientRect().top+window.scrollY-20,behavior:'smooth'})">
-                            <div class="kpi-icon slate"><i class="bi bi-slash-circle-fill"></i></div>
-                            <div>
-                                <div class="kpi-num slate" th:text="${totalNuncaUtilizados}">0</div>
-                                <div class="kpi-lbl">Nunca Utilizados</div>
-                            </div>
-                        </div>
-                    </div>
                     <div class="col-12 col-lg-3 d-flex align-items-center">
-                        <a href="/exportar" class="btn-export">
+                        <a th:href="@{/exportar(colecao=${modoTodas ? 'todas' : colecaoAtual?.slug})}"
+                           id="btnExportar"
+                           class="btn-export">
                             <i class="bi bi-file-earmark-excel-fill" style="font-size:1.1rem"></i>
                             Exportar Excel
                         </a>
@@ -427,53 +464,6 @@
                                         <span class="diff-pill" th:text="'+' + ${item.diferenca}"></span>
                                     </td>
                                     <td th:text="${item.marcas}"></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Tabela: Nunca Utilizados -->
-                <div class="result-block" id="bloco-nunca-util" th:if="${not #lists.isEmpty(resultado.nuncaUtilizados)}">
-                    <div class="result-block-head">
-                        <div class="rh-icon slate"><i class="bi bi-slash-circle-fill"></i></div>
-                        <span class="rh-title">Tecidos Planejados sem Utilização</span>
-                        <span class="badge bg-secondary rh-count"
-                              th:text="${#lists.size(resultado.nuncaUtilizados)}"></span>
-                    </div>
-                    <div class="table-responsive">
-                        <table id="tabelaNuncaUtil" class="table table-hover mb-0 w-100">
-                            <colgroup>
-                                <col style="width:17%"> <col style="width:12%"> <col style="width:17%">
-                                <col style="width:7%">  <col style="width:8%">  <col style="width:17%">
-                                <col style="width:12%">
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th>Modelo</th>
-                                    <th>Código Systêxtil</th>
-                                    <th>Descrição</th>
-                                    <th class="text-center">Aprovado</th>
-                                    <th>Aprov/Cont</th>
-                                    <th>Observação</th>
-                                    <th>Marca</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="item : ${resultado.nuncaUtilizados}">
-                                    <td th:text="${item.modelo}"></td>
-                                    <td th:text="${item.codigoSystextil}"></td>
-                                    <td th:text="${item.descricaoSystextil}"></td>
-                                    <td class="text-center" th:text="${item.totalAprovacaoTecido}"></td>
-                                    <td th:text="${item.aprovCont}"></td>
-                                    <td>
-                                        <div class="obs-wrap">
-                                            <input type="text" class="obs-input"
-                                                   th:value="${observacoes != null and observacoes[item.codigoSystextil] != null} ? ${observacoes[item.codigoSystextil]} : ''"
-                                                   th:data-codigo="${item.codigoSystextil}">
-                                        </div>
-                                    </td>
-                                    <td th:text="${item.linha}"></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -583,6 +573,220 @@
 
         </div>
 
+        <!-- ── Aba 3: Coleção Completa ──────────────────────────────────── -->
+        <div class="tab-pane fade panel" id="main-cc" role="tabpanel">
+
+            <div th:if="${erroCC}" class="alert alert-danger rounded-3">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${erroCC}"></span>
+            </div>
+
+            <div th:unless="${resultadoCC != null}"
+                 class="alert alert-secondary rounded-3">
+                <i class="bi bi-arrow-left-circle me-2"></i>
+                Faça o upload das 3 planilhas na aba <strong>Upload de Planilhas</strong>
+                e clique em <strong>Analisar</strong> para ver os resultados da Coleção Completa.
+            </div>
+
+            <div th:if="${resultadoCC != null}">
+
+                <!-- Gráficos -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-lg-6" th:if="${marcasGraficoExcessosCC != null and !marcasGraficoExcessosCC.isEmpty()}">
+                        <div class="p-3 rounded-4 bg-white shadow-sm h-100">
+                            <div class="mb-2" style="color:#5c6b8a;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.4px">
+                                Tecidos Acima do Planejado por Marca
+                            </div>
+                            <canvas id="graficaExcessosCC" style="max-height:200px"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPIs + Exportar -->
+                <div class="row g-3 mb-4 align-items-stretch">
+                    <div class="col-6 col-lg-3">
+                        <div class="kpi-card h-100" style="cursor:pointer"
+                             onclick="var e=document.getElementById('bloco-excessos-cc');window.scrollTo({top:e.getBoundingClientRect().top+window.scrollY-20,behavior:'smooth'})">
+                            <div class="kpi-icon red"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                            <div>
+                                <div class="kpi-num red" th:text="${totalExcessosCC}">0</div>
+                                <div class="kpi-lbl">Tecidos em Excesso</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-3 d-flex align-items-center">
+                        <a th:href="@{/exportar-colecao-completa(colecao=${modoTodas ? 'todas' : colecaoAtual?.slug})}"
+                           id="btnExportarCC"
+                           class="btn-export">
+                            <i class="bi bi-file-earmark-excel-fill" style="font-size:1.1rem"></i>
+                            Exportar Excel
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Sem ocorrências -->
+                <div class="alert alert-success rounded-3"
+                     th:if="${#lists.isEmpty(resultadoCC.excessos) and #lists.isEmpty(resultadoCC.nuncaUtilizados)}">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    Nenhum excesso encontrado! Todos os tecidos estão dentro do planejado.
+                </div>
+
+                <!-- Filtro por Marca -->
+                <div class="filter-bar"
+                     th:if="${not #lists.isEmpty(resultadoCC.excessos) or not #lists.isEmpty(resultadoCC.nuncaUtilizados)}">
+                    <i class="bi bi-funnel-fill" style="color:#1a56db;font-size:1rem"></i>
+                    <span class="fi-label">Filtrar por Marca</span>
+                    <select id="filtroMarcaCC">
+                        <option value="">Todas as marcas</option>
+                        <option th:each="m : ${marcasValidas}" th:value="${m}" th:text="${m}"></option>
+                    </select>
+                </div>
+
+                <!-- Tabela: Tecidos Acima do Planejado -->
+                <div class="result-block" id="bloco-excessos-cc" th:if="${not #lists.isEmpty(resultadoCC.excessos)}">
+                    <div class="result-block-head">
+                        <div class="rh-icon red"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                        <span class="rh-title">Tecidos Acima do Planejado</span>
+                        <span class="badge bg-danger rh-count"
+                              th:text="${#lists.size(resultadoCC.excessos)}"></span>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="tabelaExcessosCC" class="table table-hover mb-0 w-100">
+                            <colgroup>
+                                <col style="width:17%"> <col style="width:12%"> <col style="width:17%">
+                                <col style="width:7%">  <col style="width:8%">  <col style="width:8%">
+                                <col style="width:9%">  <col style="width:12%">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>Modelo</th>
+                                    <th>Código Systêxtil</th>
+                                    <th>Descrição</th>
+                                    <th class="text-center">Aprovado</th>
+                                    <th>Aprov/Cont</th>
+                                    <th class="text-center">Utilizado</th>
+                                    <th class="text-center">Diferença</th>
+                                    <th>Marca</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="item : ${resultadoCC.excessos}"
+                                    th:classappend="${item.diferenca > 5} ? 'excess-row-hi' : 'excess-row'">
+                                    <td th:text="${item.modelo}"></td>
+                                    <td th:text="${item.codigoSystextil}"></td>
+                                    <td th:text="${item.descricaoSystextil}"></td>
+                                    <td class="text-center" th:text="${item.totalAprovacaoTecido}"></td>
+                                    <td th:text="${item.aprovCont}"></td>
+                                    <td class="text-center fw-bold" th:text="${item.totalModeloSomado}"></td>
+                                    <td class="text-center">
+                                        <span class="diff-pill" th:text="'+' + ${item.diferenca}"></span>
+                                    </td>
+                                    <td th:text="${item.marcas}"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+
+        <!-- ── Aba: Tecidos S/ Utilização ──────────────────────────────── -->
+        <div class="tab-pane fade panel" id="main-sem-util" role="tabpanel">
+
+            <div th:if="${resultado == null or #lists.isEmpty(resultado.nuncaUtilizados)}"
+                 class="text-muted" style="padding:2rem 0;font-size:.92rem;">
+                <i class="bi bi-info-circle me-2"></i>
+                Nenhum tecido planejado sem utilização encontrado.
+            </div>
+
+            <div th:unless="${resultado == null or #lists.isEmpty(resultado.nuncaUtilizados)}">
+
+                <!-- Gráfico: Nunca Utilizados por Marca -->
+                <div class="row g-3 mb-4" th:if="${marcasGraficoNunca != null and !marcasGraficoNunca.isEmpty()}">
+                    <div class="col-12 col-lg-6">
+                        <div class="p-3 rounded-4 bg-white shadow-sm">
+                            <div class="mb-2" style="color:#5c6b8a;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.4px">
+                                Nunca Utilizados por Marca
+                            </div>
+                            <canvas id="graficaNunca" style="max-height:200px"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI card -->
+                <div class="row g-3 mb-4 align-items-stretch">
+                    <div class="col-6 col-lg-3">
+                        <div class="kpi-card h-100">
+                            <div class="kpi-icon slate"><i class="bi bi-slash-circle-fill"></i></div>
+                            <div>
+                                <div class="kpi-num slate" th:text="${totalNuncaUtilizados}">0</div>
+                                <div class="kpi-lbl">Nunca Utilizados</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtro por Marca -->
+                <div class="filter-bar mb-3">
+                    <i class="bi bi-funnel-fill" style="color:#1a56db;font-size:1rem"></i>
+                    <span class="fi-label">Filtrar por Marca</span>
+                    <select id="filtroMarcaSU">
+                        <option value="">Todas as marcas</option>
+                        <option th:each="m : ${marcasValidas}" th:value="${m}" th:text="${m}"></option>
+                    </select>
+                </div>
+
+                <!-- Título acima da tabela -->
+                <div class="result-block-head mb-3">
+                    <div class="rh-icon slate"><i class="bi bi-slash-circle-fill"></i></div>
+                    <span class="rh-title">Tecidos Planejados sem Utilização</span>
+                    <span class="badge bg-secondary rh-count"
+                          th:text="${#lists.size(resultado.nuncaUtilizados)}"></span>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="tabelaSemUtil" class="table table-hover mb-0 w-100">
+                        <colgroup>
+                            <col style="width:17%"> <col style="width:12%"> <col style="width:17%">
+                            <col style="width:7%">  <col style="width:8%">  <col style="width:17%">
+                            <col style="width:12%">
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>Modelo</th>
+                                <th>Código Systêxtil</th>
+                                <th>Descrição</th>
+                                <th class="text-center">Aprovado</th>
+                                <th>Aprov/Cont</th>
+                                <th>Observação</th>
+                                <th>Marca</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="item : ${resultado.nuncaUtilizados}">
+                                <td th:text="${item.modelo}"></td>
+                                <td th:text="${item.codigoSystextil}"></td>
+                                <td th:text="${item.descricaoSystextil}"></td>
+                                <td class="text-center" th:text="${item.totalAprovacaoTecido}"></td>
+                                <td th:text="${item.aprovCont}"></td>
+                                <td>
+                                    <div class="obs-wrap">
+                                        <input type="text" class="obs-input"
+                                               th:value="${observacoes != null and observacoes[item.codigoSystextil] != null} ? ${observacoes[item.codigoSystextil]} : ''"
+                                               th:data-codigo="${item.codigoSystextil}"
+                                               th:data-colecao="${item.colecao != null and !item.colecao.isBlank()} ? ${item.colecao} : ${colecaoAtual?.slug}">
+                                    </div>
+                                </td>
+                                <td th:text="${item.linha}"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
         <!-- ── Aba 3: Análise ────────────────────────────────────────────── -->
         <div class="tab-pane fade panel" id="main-analise" role="tabpanel">
 
@@ -602,15 +806,18 @@
                 <div class="table-responsive">
                     <table id="tabelaAnalise" class="table table-hover mb-0 w-100">
                         <colgroup>
-                            <col style="width:13%"> <col style="width:30%">
-                            <col style="width:12%"> <col style="width:10%">
-                            <col style="width:35%">
+                            <col style="width:10%"> <col style="width:9%"> <col style="width:21%">
+                            <col style="width:7%">  <col style="width:8%"> <col style="width:7%">
+                            <col style="width:7%">  <col style="width:31%">
                         </colgroup>
                         <thead>
                             <tr>
                                 <th>Código</th>
+                                <th>Modelo</th>
                                 <th>Descrição</th>
+                                <th class="text-center">Aprov/Cont</th>
                                 <th class="text-center">Qtd Atual</th>
+                                <th class="text-center">Utilizado</th>
                                 <th class="text-center">Alterações</th>
                                 <th>Histórico</th>
                             </tr>
@@ -618,8 +825,11 @@
                         <tbody>
                             <tr th:each="item : ${historicoAlteracoes}">
                                 <td th:text="${item.codigoSystextil}"></td>
+                                <td th:text="${item.modelo}"></td>
                                 <td th:text="${item.descricaoSystextil}"></td>
+                                <td class="text-center" th:text="${item.aprovCont}"></td>
                                 <td class="text-center fw-bold" th:text="${item.quantidadeAtual}"></td>
+                                <td class="text-center" th:text="${utilizadoMap != null and utilizadoMap[item.codigoSystextil] != null ? utilizadoMap[item.codigoSystextil] : 0}"></td>
                                 <td class="text-center">
                                     <span class="badge bg-warning text-dark"
                                           th:text="${item.totalAlteracoes}"></span>
@@ -652,6 +862,7 @@
             </div>
             <div class="modal-body" style="font-size:0.92rem;line-height:1.7;">
                 <p>Entre na gerencial do fluxograma e, na aba <strong>"Visões"</strong>, procure por <strong>"Claude Tecido"</strong>. Irão aparecer 3 planilhas já organizadas em ordem.</p>
+                <p style="color:#c0392b;font-weight:600;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Importante: Na Gerencial, precisa Requisitar reprocessamento de fórmulas, e só gerar as planilhas depois que esse processo esteja 100%.</p>
                 <ul>
                     <li><strong>Planilha 1</strong> — Tecidos Aprovados</li>
                     <li><strong>Planilha 2</strong> — Tecidos Utilizados - Peças liberadas</li>
@@ -676,6 +887,12 @@
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script th:inline="none">
+    function trocarColecao(slug) {
+        var url = new URL(window.location.href);
+        url.searchParams.set('colecao', slug);
+        window.location.href = url.toString();
+    }
+
     const dtLang = {
         "decimal": ",", "thousands": ".",
         "emptyTable":    "Sem dados disponíveis",
@@ -702,18 +919,18 @@
         return marcas.indexOf(filtro) !== -1;
     });
 
-    // Filtro por Marca na tabelaNuncaUtil (col 6 — múltiplas marcas separadas por vírgula)
+    // Filtro por Marca na tabelaSemUtil (col 6 — múltiplas marcas separadas por vírgula)
     $.fn.dataTable.ext.search.push(function(settings, data) {
-        if (settings.nTable.id !== 'tabelaNuncaUtil') return true;
-        var filtro = $('#filtroMarca').val();
+        if (settings.nTable.id !== 'tabelaSemUtil') return true;
+        var filtro = $('#filtroMarcaSU').val();
         if (!filtro) return true;
         var marcas = data[6].split(',').map(function(m) { return m.trim(); });
         return marcas.indexOf(filtro) !== -1;
     });
 
     $(document).ready(function () {
-        var tabelaExcessos  = null;
-        var tabelaNuncaUtil = null;
+        var tabelaExcessos = null;
+        var tabelaSemUtil  = null;
 
         if ($('#tabelaExcessos').length) {
             tabelaExcessos = $('#tabelaExcessos').DataTable({
@@ -725,13 +942,35 @@
                 columnDefs: [{ targets: [3, 5, 6], className: 'text-center' }]
             });
         }
-        if ($('#tabelaNuncaUtil').length) {
-            tabelaNuncaUtil = $('#tabelaNuncaUtil').DataTable({
+        if ($('#tabelaSemUtil').length) {
+            tabelaSemUtil = $('#tabelaSemUtil').DataTable({
                 language: dtLang,
                 pageLength: 100,
                 lengthChange: false,
                 autoWidth: false,
                 order: [[1, 'asc']]
+            });
+            $('#filtroMarcaSU').on('change', function() { tabelaSemUtil.draw(); });
+        }
+        if ($('#tabelaExcessosCC').length) {
+            var tabelaExcessosCC = $('#tabelaExcessosCC').DataTable({
+                language: dtLang,
+                pageLength: 100,
+                lengthChange: false,
+                autoWidth: false,
+                order: [[6, 'desc']],
+                columnDefs: [{ targets: [3, 5, 6], className: 'text-center' }]
+            });
+            $.fn.dataTable.ext.search.push(function(settings, data) {
+                if (settings.nTable.id !== 'tabelaExcessosCC') return true;
+                var filtro = $('#filtroMarcaCC').val();
+                if (!filtro) return true;
+                var marcas = data[7].split(',').map(function(m) { return m.trim(); });
+                return marcas.indexOf(filtro) !== -1;
+            });
+            $('#filtroMarcaCC').on('change', function() {
+                tabelaExcessosCC.draw();
+                atualizarBtnExportar('filtroMarcaCC', 'btnExportarCC', '/exportar-colecao-completa');
             });
         }
         if ($('#tabelaAnalise').length) {
@@ -740,25 +979,28 @@
                 pageLength: 50,
                 lengthChange: false,
                 autoWidth: false,
-                order: [[3, 'desc']],
-                columnDefs: [{ targets: [2, 3], className: 'text-center' }]
+                order: [[6, 'desc']],
+                columnDefs: [{ targets: [3, 4, 5, 6], className: 'text-center' }]
             });
         }
 
         $('#filtroMarca').on('change', function() {
-            if (tabelaExcessos)  tabelaExcessos.draw();
-            if (tabelaNuncaUtil) tabelaNuncaUtil.draw();
+            if (tabelaExcessos) tabelaExcessos.draw();
+            atualizarBtnExportar('filtroMarca', 'btnExportar', '/exportar');
         });
 
         // Auto-save ao sair do campo
         $(document).on('blur', '.obs-input', function() {
-            var input  = $(this);
-            var codigo = input.data('codigo');
-            var texto  = input.val();
+            var input   = $(this);
+            var codigo  = input.data('codigo');
+            var texto   = input.val();
+            var colecao = input.data('colecao') || '';
             fetch('/observacao', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'codigo=' + encodeURIComponent(codigo) + '&texto=' + encodeURIComponent(texto)
+                body: 'codigo=' + encodeURIComponent(codigo)
+                    + '&texto=' + encodeURIComponent(texto)
+                    + '&colecao=' + encodeURIComponent(colecao)
             }).then(function(r) {
                 if (r.ok) {
                     input.addClass('obs-saved');
@@ -777,6 +1019,19 @@
 </script>
 <script th:inline="javascript">
 /*<![CDATA[*/
+var _colecaoSlug  = /*[[${colecaoAtual?.slug}]]*/ null;
+var _modoTodas    = /*[[${modoTodas}]]*/ false;
+
+function atualizarBtnExportar(filtroId, btnId, baseUrl) {
+    var btn  = document.getElementById(btnId);
+    if (!btn) return;
+    var col  = _modoTodas ? 'todas' : (_colecaoSlug || '');
+    var marca = document.getElementById(filtroId) ? document.getElementById(filtroId).value : '';
+    var url = baseUrl + '?colecao=' + encodeURIComponent(col);
+    if (marca) url += '&marca=' + encodeURIComponent(marca);
+    btn.href = url;
+}
+
 function renderGrafico(canvasId, dados, cor) {
     var el = document.getElementById(canvasId);
     if (!el || !dados) return;
@@ -815,8 +1070,18 @@ function renderGrafico(canvasId, dados, cor) {
         }
     });
 }
-renderGrafico('graficaExcessos', /*[[${marcasGraficoExcessos}]]*/ null, 'rgba(224,57,57,0.75)');
-renderGrafico('graficaNunca',    /*[[${marcasGraficoNunca}]]*/ null,    'rgba(26,86,219,0.70)');
+renderGrafico('graficaExcessos',   /*[[${marcasGraficoExcessos}]]*/ null,   'rgba(224,57,57,0.75)');
+renderGrafico('graficaExcessosCC', /*[[${marcasGraficoExcessosCC}]]*/ null, 'rgba(224,57,57,0.75)');
+
+// graficaNunca fica em aba oculta — renderiza na primeira vez que a aba abrir
+var _dadosNunca = /*[[${marcasGraficoNunca}]]*/ null;
+var _graficaNuncaRendered = false;
+document.getElementById('main-sem-util-btn') && document.getElementById('main-sem-util-btn').addEventListener('shown.bs.tab', function() {
+    if (!_graficaNuncaRendered && _dadosNunca) {
+        renderGrafico('graficaNunca', _dadosNunca, 'rgba(26,86,219,0.70)');
+        _graficaNuncaRendered = true;
+    }
+});
 /*]]>*/
 </script>
 
