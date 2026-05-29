@@ -307,9 +307,7 @@
                     th:text="${c.nomeOriginal}"
                     th:selected="${colecaoAtual != null and colecaoAtual.slug == c.slug}"></option>
         </select>
-        <span class="colecao-badge" th:classappend="${modoTodas} ? 'todas'"
-              th:text="${modoTodas} ? 'Todas as coleções' : (colecaoAtual != null ? colecaoAtual.nomeOriginal : 'Nenhuma')">
-        </span>
+
         <span th:if="${ultimaAtualizacao != null}"
               style="font-size:.78rem;color:#5c6b8a;display:flex;align-items:center;gap:.35rem;margin-left:.5rem;">
             <i class="bi bi-clock-history"></i>
@@ -653,7 +651,7 @@
                         <table id="tabelaExcessosCC" class="table table-hover mb-0 w-100">
                             <colgroup>
                                 <col style="width:17%"> <col style="width:12%"> <col style="width:17%">
-                                <col style="width:7%">  <col style="width:8%">  <col style="width:8%">
+                                <col style="width:8%">  <col style="width:7%">  <col style="width:8%">
                                 <col style="width:9%">  <col style="width:12%">
                             </colgroup>
                             <thead>
@@ -661,8 +659,8 @@
                                     <th>Modelo</th>
                                     <th>Código Systêxtil</th>
                                     <th>Descrição</th>
-                                    <th class="text-center">Aprovado</th>
                                     <th>Aprov/Cont</th>
+                                    <th class="text-center">Aprovado</th>
                                     <th class="text-center">Utilizado</th>
                                     <th class="text-center">Diferença</th>
                                     <th>Marca</th>
@@ -674,8 +672,8 @@
                                     <td th:text="${item.modelo}"></td>
                                     <td th:text="${item.codigoSystextil}"></td>
                                     <td th:text="${item.descricaoSystextil}"></td>
-                                    <td class="text-center" th:text="${item.totalAprovacaoTecido}"></td>
                                     <td th:text="${item.aprovCont}"></td>
+                                    <td class="text-center" th:text="${item.totalAprovacaoTecido}"></td>
                                     <td class="text-center fw-bold" th:text="${item.totalModeloSomado}"></td>
                                     <td class="text-center">
                                         <span class="diff-pill" th:text="'+' + ${item.diferenca}"></span>
@@ -959,7 +957,7 @@
                 lengthChange: false,
                 autoWidth: false,
                 order: [[6, 'desc']],
-                columnDefs: [{ targets: [3, 5, 6], className: 'text-center' }]
+                columnDefs: [{ targets: [4, 5, 6], className: 'text-center' }]
             });
             $.fn.dataTable.ext.search.push(function(settings, data) {
                 if (settings.nTable.id !== 'tabelaExcessosCC') return true;

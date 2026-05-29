@@ -138,7 +138,6 @@ public class HistoricoService {
         }
 
         return historicoMap.entrySet().stream()
-                .filter(entry -> entry.getValue().size() > 1)
                 .map(entry -> new ItemAlteracao(
                         codOriginal.get(entry.getKey()),
                         descricaoMap.get(entry.getKey()),
@@ -147,7 +146,10 @@ public class HistoricoService {
                         ultimoValor.get(entry.getKey()),
                         entry.getValue().size() - 1,
                         entry.getValue()))
-                .sorted(Comparator.comparingInt(ItemAlteracao::totalAlteracoes).reversed())
+                .sorted(Comparator.comparing((ItemAlteracao item) -> {
+                    String ultimo = item.historico().get(item.historico().size() - 1);
+                    return LocalDateTime.parse(ultimo.substring(0, 16), FMT);
+                }).reversed())
                 .collect(Collectors.toList());
     }
 
